@@ -27,7 +27,7 @@ fn main() -> ! {
     #[cfg(feature = "esp32")]
     let system = peripherals.DPORT.split();
 
-    #[cfg(any(feature = "esp32", feature = "esp32s2"))]
+    #[cfg(any(feature = "esp32", feature = "esp32s2", feature = "esp32c6"))]
     #[allow(unused)]
     let clocks = ClockControl::boot_defaults(system.clock_control).freeze(); // TODO: ESP32 and S2 only works with `boot_defauls` for some reason
 

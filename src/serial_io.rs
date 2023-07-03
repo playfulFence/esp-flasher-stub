@@ -4,12 +4,16 @@ use crate::{
     hal::{
         interrupt,
         interrupt::CpuInterrupt::*,
-        pac,
-        pac::UART0,
+        peripherals::*,
+        peripherals::{
+            uart0::{fifo::FIFO_SPEC, RegisterBlock},
+            UART0,
+            UART1,
+        },
         prelude::*,
-        serial::Instance,
+        uart::Instance,
         Cpu::*,
-        Serial,
+        Uart,
     },
     protocol::InputIO,
 };
@@ -18,7 +22,7 @@ const RX_QUEUE_SIZE: usize = crate::targets::MAX_WRITE_BLOCK + 0x400;
 
 static mut RX_QUEUE: Deque<u8, RX_QUEUE_SIZE> = Deque::new();
 
-impl<T: Instance> InputIO for Serial<T> {
+impl<T: Instance> InputIO for Uart<'_, T> {
     fn recv(&mut self) -> u8 {
         unsafe { while critical_section::with(|_| RX_QUEUE.is_empty()) {} }
         unsafe { critical_section::with(|_| RX_QUEUE.pop_front().unwrap()) }
@@ -41,7 +45,7 @@ fn uart_isr() {
 
         let data = unsafe {
             let data = (uart.fifo.as_ptr() as *mut u8).offset(offset)
-                as *mut crate::hal::pac::generic::Reg<crate::hal::pac::uart0::fifo::FIFO_SPEC>;
+                as *mut crate::hal::peripherals::generic::Reg<FIFO_SPEC>;
             (*data).read().rxfifo_rd_byte().bits()
         };
 
@@ -56,6 +60,6 @@ fn UART0() {
     uart_isr();
     #[cfg(any(feature = "esp32", feature = "esp32s2", feature = "esp32s3"))]
     interrupt::clear(ProCpu, Interrupt17LevelPriority1);
-    #[cfg(any(feature = "esp32c3", feature = "esp32c2"))]
+    #[cfg(any(feature = "esp32c3", feature = "esp32c2", feature = "esp32c6"))]
     interrupt::clear(ProCpu, Interrupt1);
 }
